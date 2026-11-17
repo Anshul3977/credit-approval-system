@@ -4,6 +4,12 @@ __pycache__/
 *.pyd
 .Python
 venv/
+.venv/
 *.sqlite3
 *.log
 .env
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+backend/staticfiles/

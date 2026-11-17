@@ -1,3 +1,1 @@
-from django.test import TestCase
-
-# Create your tests here.
+"""HTTP and scoring tests live in backend/tests."""

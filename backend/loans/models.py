@@ -1,7 +1,9 @@
+
 from django.db import models
 from django.utils import timezone
+
 from customers.models import Customer
-from decimal import Decimal
+
 
 class Loan(models.Model):
     loan_id = models.AutoField(primary_key=True)
@@ -18,7 +20,7 @@ class Loan(models.Model):
         return f"Loan {self.loan_id} for {self.customer}"
 
     def repayments_left(self):
-        return self.tenure - self.emis_paid_on_time
+        return max(0, self.tenure - self.emis_paid_on_time)
 
     class Meta:
         ordering = ['-start_date']

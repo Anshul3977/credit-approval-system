@@ -1,3 +1,1 @@
-from django.shortcuts import render
-
-# Create your views here.
+"""Loan endpoints are defined in customers.views, matching the original project layout."""

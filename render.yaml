@@ -1,0 +1,42 @@
+# Free-tier Blueprint only.
+# Free web services have no background workers and no pre-deploy command
+# (https://render.com/docs/free and https://render.com/docs/deploys).
+# scripts/start.sh migrates, then loads the sample workbook when the customer
+# table is empty, then binds gunicorn to 0.0.0.0:$PORT.
+# Celery runs in-process because CELERY_TASK_ALWAYS_EAGER=true. Redis is not
+# created. A free Postgres database expires 30 days after creation.
+
+databases:
+  - name: credit-approval-db
+    databaseName: credit_db
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: credit-approval-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: credit-approval-db
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "true"
+      - key: SEED_ON_START
+        value: "if-empty"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: PYTHONUNBUFFERED
+        value: "1"

@@ -1,23 +1,32 @@
 FROM python:3.11-slim
 
-# Set work directory
-WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (better caching)
+WORKDIR /app
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Copy project
-COPY backend/ ./backend/
+COPY backend ./backend
+COPY data ./data
+COPY scripts/start.sh /start.sh
 
-# Set working dir to Django project
+RUN chmod 755 /start.sh \
+    && useradd --create-home --uid 10001 appuser \
+    && mkdir -p /app/backend/staticfiles \
+    && DJANGO_SECRET_KEY=collectstatic-placeholder DJANGO_DEBUG=false \
+        python /app/backend/manage.py collectstatic --noinput \
+    && chown -R appuser:appuser /app
+
 WORKDIR /app/backend
+USER appuser
 
 EXPOSE 8000
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+ENTRYPOINT ["/start.sh"]
