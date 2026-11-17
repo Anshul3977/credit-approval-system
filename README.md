@@ -6,9 +6,9 @@ A Django REST API that registers customers, scores a loan request from their rep
 
 ## Live demo
 
-There is no hosted URL in this repository yet. After you merge to `main` and apply the Blueprint, replace this paragraph with the service URL Render assigns, for example `https://<service-name>.onrender.com`.
+The API is live at https://credit-approval-api-e0a8.onrender.com.
 
-Interactive docs will be at `https://<service-name>.onrender.com/api/docs/`.
+Interactive docs: https://credit-approval-api-e0a8.onrender.com/api/docs/.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://dashboard.render.com/blueprint/new?repo=https://github.com/Anshul3977/credit-approval-system)
 
@@ -281,6 +281,8 @@ The tests cover register (including the lakh rounding and duplicate phones), eve
 ## Deploy on Render
 
 Free plan only. One web service and one Postgres database. No Key Value instance, because eager Celery does not need Redis. Render's free plan cannot run a background worker, and the pre-deploy command is only available on paid web services, so `scripts/start.sh` migrates, loads the sample data when the customer table is empty, and then binds Gunicorn to `0.0.0.0:$PORT`.
+
+The live service at https://credit-approval-api-e0a8.onrender.com is a free Render web service in Singapore. Its database is a free Neon Postgres instance in Singapore, not Render Postgres, because this workspace already uses its one free Render Postgres database. The app connects with `DATABASE_URL` and `sslmode=require`.
 
 1. Merge this branch to `main` so `render.yaml` is on the default branch.
 2. Open [the Blueprint link](https://dashboard.render.com/blueprint/new?repo=https://github.com/Anshul3977/credit-approval-system) and apply it. Use a workspace that does not already have a free Render Postgres database. A workspace can have only one.
