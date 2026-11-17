@@ -1,39 +1,55 @@
-version: '3.9'
-
+# Local stack matching the original design: Postgres, Redis, the API, and a
+# Celery worker. Render's free plan cannot run the worker; the Blueprint sets
+# CELERY_TASK_ALWAYS_EAGER=true and does not provision Redis. To boot only the
+# free-tier path locally:
+#   CELERY_TASK_ALWAYS_EAGER=true CELERY_BROKER_URL=memory:// docker compose up db web
 services:
   db:
-    image: postgres:15-alpine
-    restart: always
+    image: postgres:16-alpine
     environment:
-      POSTGRES_DB: credit_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: your_secure_password_123
+      POSTGRES_DB: ${POSTGRES_DB:-credit_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-credit_dev_password}
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"   # map to 5433 to avoid conflict if you have local postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-credit_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
-    restart: always
     ports:
       - "6379:6379"
 
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
     volumes:
       - ./backend:/app/backend
       - ./data:/app/data
-    ports:
-      - "8000:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      - DATABASE_URL=postgres://postgres:your_secure_password_123@db:5432/credit_db
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      POSTGRES_DB: ${POSTGRES_DB:-credit_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-credit_dev_password}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-only-not-for-production}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      CELERY_TASK_ALWAYS_EAGER: ${CELERY_TASK_ALWAYS_EAGER:-false}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      SEED_ON_START: ${SEED_ON_START:-if-empty}
 
   celery:
     build: .
@@ -42,12 +58,22 @@ services:
       - ./backend:/app/backend
       - ./data:/app/data
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      - DATABASE_URL=postgres://postgres:your_secure_password_123@db:5432/credit_db
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      POSTGRES_DB: ${POSTGRES_DB:-credit_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-credit_dev_password}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-only-not-for-production}
+      CELERY_TASK_ALWAYS_EAGER: "false"
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SEED_ON_START: "false"
 
 volumes:
   postgres_data:
